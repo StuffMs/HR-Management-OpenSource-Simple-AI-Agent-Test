@@ -1,0 +1,457 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ employee.first_name }} {{ employee.last_name }} - Employee Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('employee_details', id=employee.id) }}">{{ employee.first_name }} {{ employee.last_name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            </ol>
+        </nav>
+        
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit Employee</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('edit_employee', id=employee.id) }}" method="post">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control" id="first_name" name="first_name" value="{{ employee.first_name }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control" id="last_name" name="last_name" value="{{ employee.last_name }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ employee.email }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                            <input type="tel" class="form-control" id="phone" name="phone" value="{{ employee.phone }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="department" class="form-label">Department</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-building"></i></span>
+                                <select class="form-select" id="department" name="department" required>
+                                    {% for department in departments %}
+                                        <option value="{{ department }}" {% if employee.department == department %}selected{% endif %}>{{ department }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="position" class="form-label">Position</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
+                                <input type="text" class="form-control" id="position" name="position" value="{{ employee.position }}" list="position-suggestions" autocomplete="off" required>
+                                <datalist id="position-suggestions"></datalist>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="hire_date" class="form-label">Hire Date</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                            <input type="text" class="form-control date-picker" id="hire_date" name="hire_date" value="{{ employee.hire_date.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="employee_id" class="form-label">Employee ID</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                            <input type="text" class="form-control" id="employee_id" name="employee_id" value="{{ employee.employee_id or '' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="current_address" class="form-label">Current Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                            <textarea class="form-control" id="current_address" name="current_address" rows="3" required>{{ employee.current_address }}</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="permanent_address" class="form-label">Permanent Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-house"></i></span>
+                            <textarea class="form-control" id="permanent_address" name="permanent_address" rows="3">{{ employee.permanent_address or '' }}</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="salary" class="form-label">Salary</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-currency-dollar"></i></span>
+                            <input type="number" step="0.01" min="0" class="form-control" id="salary" name="salary" value="{{ employee.salary }}" placeholder="0.00">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-sticky"></i></span>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ employee.notes }}</textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Education Section -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-mortarboard me-2"></i>Education Background</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="education-container">
+                                <!-- Education entries will be added here -->
+                                {% for education in educations %}
+                                <div class="education-entry card mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="card-title mb-0"><i class="bi bi-mortarboard me-2"></i>Education #{{ loop.index }}</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-education">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Institution</label>
+                                                <input type="text" class="form-control" name="institution_{{ loop.index0 }}" value="{{ education.institution }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Degree</label>
+                                                <input type="text" class="form-control" name="degree_{{ loop.index0 }}" value="{{ education.degree }}" required>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Field of Study</label>
+                                            <input type="text" class="form-control" name="field_of_study_{{ loop.index0 }}" value="{{ education.field_of_study }}" required>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Start Date</label>
+                                                <input type="text" class="form-control date-picker" name="edu_start_date_{{ loop.index0 }}" value="{{ education.start_date.strftime('%Y-%m-%d') }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">End Date (or Expected)</label>
+                                                <input type="text" class="form-control date-picker" name="edu_end_date_{{ loop.index0 }}" value="{{ education.end_date.strftime('%Y-%m-%d') if education.end_date else '' }}">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Description</label>
+                                            <textarea class="form-control" name="edu_description_{{ loop.index0 }}" rows="2">{{ education.description or '' }}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" id="education_count" name="education_count" value="{{ educations|length }}">
+                            <button type="button" class="btn btn-outline-primary mt-3" id="add-education">
+                                <i class="bi bi-plus-circle me-1"></i>Add Education
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Certification Section -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-award me-2"></i>Certifications</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="certification-container">
+                                <!-- Certification entries will be added here -->
+                                {% for cert in certifications %}
+                                <div class="certification-entry card mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="card-title mb-0"><i class="bi bi-award me-2"></i>Certification #{{ loop.index }}</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-certification">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Certification Name</label>
+                                                <input type="text" class="form-control" name="cert_name_{{ loop.index0 }}" value="{{ cert.name }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Issuing Organization</label>
+                                                <input type="text" class="form-control" name="issuing_organization_{{ loop.index0 }}" value="{{ cert.issuing_organization }}" required>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Issue Date</label>
+                                                <input type="text" class="form-control date-picker" name="issue_date_{{ loop.index0 }}" value="{{ cert.issue_date.strftime('%Y-%m-%d') }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Expiry Date (if applicable)</label>
+                                                <input type="text" class="form-control date-picker" name="expiry_date_{{ loop.index0 }}" value="{{ cert.expiry_date.strftime('%Y-%m-%d') if cert.expiry_date else '' }}">
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Credential ID</label>
+                                                <input type="text" class="form-control" name="credential_id_{{ loop.index0 }}" value="{{ cert.credential_id or '' }}">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Credential URL</label>
+                                                <input type="url" class="form-control" name="credential_url_{{ loop.index0 }}" value="{{ cert.credential_url or '' }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" id="certification_count" name="certification_count" value="{{ certifications|length }}">
+                            <button type="button" class="btn btn-outline-info mt-3" id="add-certification">
+                                <i class="bi bi-plus-circle me-1"></i>Add Certification
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{{ url_for('employee_details', id=employee.id) }}" class="btn btn-secondary me-md-2">
+                            <i class="bi bi-x-circle me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-save me-1"></i>Update Employee
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize date picker
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize all date pickers
+        flatpickr(".date-picker", {
+            dateFormat: "Y-m-d",
+            allowInput: true
+        });
+        
+        // Position autocomplete
+        const positionInput = document.getElementById('position');
+        
+        positionInput.addEventListener('input', function() {
+            if (this.value.length >= 2) {
+                fetch(`/positions?q=${this.value}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const datalist = document.getElementById('position-suggestions');
+                        datalist.innerHTML = '';
+                        
+                        data.forEach(position => {
+                            const option = document.createElement('option');
+                            option.value = position;
+                            datalist.appendChild(option);
+                        });
+                    });
+            }
+        });
+        
+        // Education dynamic fields
+        let educationCount = {{ educations|length }};
+        const educationContainer = document.getElementById('education-container');
+        const educationCountInput = document.getElementById('education_count');
+        
+        // Add remove event listeners to existing education entries
+        document.querySelectorAll('.remove-education').forEach(button => {
+            button.addEventListener('click', function() {
+                this.closest('.education-entry').remove();
+                updateEducationCount();
+            });
+        });
+        
+        document.getElementById('add-education').addEventListener('click', function() {
+            const educationEntry = document.createElement('div');
+            educationEntry.className = 'education-entry card mb-3';
+            educationEntry.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="card-title mb-0"><i class="bi bi-mortarboard me-2"></i>Education #${educationCount + 1}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-education">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Institution</label>
+                            <input type="text" class="form-control" name="institution_${educationCount}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Degree</label>
+                            <input type="text" class="form-control" name="degree_${educationCount}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Field of Study</label>
+                        <input type="text" class="form-control" name="field_of_study_${educationCount}" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Start Date</label>
+                            <input type="text" class="form-control date-picker" name="edu_start_date_${educationCount}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">End Date (or Expected)</label>
+                            <input type="text" class="form-control date-picker" name="edu_end_date_${educationCount}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="edu_description_${educationCount}" rows="2"></textarea>
+                    </div>
+                </div>
+            `;
+            
+            educationContainer.appendChild(educationEntry);
+            
+            // Initialize date pickers for the new fields
+            flatpickr(educationEntry.querySelectorAll('.date-picker'), {
+                dateFormat: "Y-m-d",
+                allowInput: true
+            });
+            
+            // Add remove event listener
+            educationEntry.querySelector('.remove-education').addEventListener('click', function() {
+                educationEntry.remove();
+                updateEducationCount();
+            });
+            
+            educationCount++;
+            educationCountInput.value = educationCount;
+        });
+        
+        function updateEducationCount() {
+            const entries = educationContainer.querySelectorAll('.education-entry');
+            educationCount = entries.length;
+            educationCountInput.value = educationCount;
+            
+            // Update the numbering
+            entries.forEach((entry, index) => {
+                const title = entry.querySelector('.card-title');
+                title.innerHTML = `<i class="bi bi-mortarboard me-2"></i>Education #${index + 1}`;
+            });
+        }
+        
+        // Certification dynamic fields
+        let certificationCount = {{ certifications|length }};
+        const certificationContainer = document.getElementById('certification-container');
+        const certificationCountInput = document.getElementById('certification_count');
+        
+        // Add remove event listeners to existing certification entries
+        document.querySelectorAll('.remove-certification').forEach(button => {
+            button.addEventListener('click', function() {
+                this.closest('.certification-entry').remove();
+                updateCertificationCount();
+            });
+        });
+        
+        document.getElementById('add-certification').addEventListener('click', function() {
+            const certificationEntry = document.createElement('div');
+            certificationEntry.className = 'certification-entry card mb-3';
+            certificationEntry.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="card-title mb-0"><i class="bi bi-award me-2"></i>Certification #${certificationCount + 1}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-certification">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Certification Name</label>
+                            <input type="text" class="form-control" name="cert_name_${certificationCount}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Issuing Organization</label>
+                            <input type="text" class="form-control" name="issuing_organization_${certificationCount}" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Issue Date</label>
+                            <input type="text" class="form-control date-picker" name="issue_date_${certificationCount}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Expiry Date (if applicable)</label>
+                            <input type="text" class="form-control date-picker" name="expiry_date_${certificationCount}">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Credential ID</label>
+                            <input type="text" class="form-control" name="credential_id_${certificationCount}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Credential URL</label>
+                            <input type="url" class="form-control" name="credential_url_${certificationCount}">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            certificationContainer.appendChild(certificationEntry);
+            
+            // Initialize date pickers for the new fields
+            flatpickr(certificationEntry.querySelectorAll('.date-picker'), {
+                dateFormat: "Y-m-d",
+                allowInput: true
+            });
+            
+            // Add remove event listener
+            certificationEntry.querySelector('.remove-certification').addEventListener('click', function() {
+                certificationEntry.remove();
+                updateCertificationCount();
+            });
+            
+            certificationCount++;
+            certificationCountInput.value = certificationCount;
+        });
+        
+        function updateCertificationCount() {
+            const entries = certificationContainer.querySelectorAll('.certification-entry');
+            certificationCount = entries.length;
+            certificationCountInput.value = certificationCount;
+            
+            // Update the numbering
+            entries.forEach((entry, index) => {
+                const title = entry.querySelector('.card-title');
+                title.innerHTML = `<i class="bi bi-award me-2"></i>Certification #${index + 1}`;
+            });
+        }
+    });
+</script>
+{% endblock %}

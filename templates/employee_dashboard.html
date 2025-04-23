@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Employee Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            {% if employee.profile_picture or employee.drive_profile_pic_id %}
+                            <img src="{{ employee.get_profile_picture_url() }}" alt="Profile Picture" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
+                            {% else %}
+                            <div class="display-6">
+                                <i class="bi bi-person-circle text-primary"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h2 class="mb-0">Welcome, {{ employee.first_name }}!</h2>
+                            <p class="text-muted mb-0">{{ employee.position }} at {{ employee.department }}</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="display-6 mb-3 text-primary">
+                                        <i class="bi bi-person-vcard"></i>
+                                    </div>
+                                    <h5>My Profile</h5>
+                                    <p class="text-muted">View and update your personal information</p>
+                                    <a href="{{ url_for('self_onboarding') }}" class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil-square me-2"></i>Edit Profile
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="display-6 mb-3 text-primary">
+                                        <i class="bi bi-mortarboard"></i>
+                                    </div>
+                                    <h5>Education</h5>
+                                    <p class="text-muted">{{ educations|length }} education record(s)</p>
+                                    <a href="{{ url_for('self_onboarding') }}#education-section" class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil-square me-2"></i>Manage Education
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="display-6 mb-3 text-primary">
+                                        <i class="bi bi-award"></i>
+                                    </div>
+                                    <h5>Certifications</h5>
+                                    <p class="text-muted">{{ certifications|length }} certification(s)</p>
+                                    <a href="{{ url_for('self_onboarding') }}#certification-section" class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil-square me-2"></i>Manage Certifications
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2 text-primary"></i>Employee Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-hover">
+                                <tr>
+                                    <th width="40%">Employee ID</th>
+                                    <td>{{ employee.employee_id or 'Not assigned yet' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Full Name</th>
+                                    <td>{{ employee.first_name }} {{ employee.last_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Email</th>
+                                    <td>{{ employee.email }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Phone</th>
+                                    <td>{{ employee.phone }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-hover">
+                                <tr>
+                                    <th width="40%">Department</th>
+                                    <td>{{ employee.department }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Position</th>
+                                    <td>{{ employee.position }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Hire Date</th>
+                                    <td>{{ employee.hire_date.strftime('%B %d, %Y') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Current Address</th>
+                                    <td>{{ employee.current_address }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if educations %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-mortarboard me-2 text-primary"></i>Education Background</h5>
+                </div>
+                <div class="card-body">
+                    {% for education in educations %}
+                    <div class="mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+                        <h5>{{ education.degree }} in {{ education.field_of_study }}</h5>
+                        <h6 class="text-muted">{{ education.institution }}</h6>
+                        <p class="mb-1">
+                            <span class="badge bg-light text-dark">
+                                {{ education.start_date.strftime('%b %Y') }} - 
+                                {% if education.end_date %}
+                                    {{ education.end_date.strftime('%b %Y') }}
+                                {% else %}
+                                    Present
+                                {% endif %}
+                            </span>
+                        </p>
+                        {% if education.description %}
+                        <p class="mb-0 mt-2">{{ education.description|nl2br }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if certifications %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-award me-2 text-primary"></i>Certifications</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for certification in certifications %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h5>{{ certification.name }}</h5>
+                                    <h6 class="text-muted">{{ certification.issuing_organization }}</h6>
+                                    <p class="mb-1">
+                                        <span class="badge bg-light text-dark">
+                                            Issued: {{ certification.issue_date.strftime('%b %Y') }}
+                                            {% if certification.expiry_date %}
+                                                <span class="mx-1">•</span> Expires: {{ certification.expiry_date.strftime('%b %Y') }}
+                                            {% endif %}
+                                        </span>
+                                    </p>
+                                    {% if certification.credential_id %}
+                                    <p class="mb-1 small">Credential ID: {{ certification.credential_id }}</p>
+                                    {% endif %}
+                                    {% if certification.credential_url %}
+                                    <a href="{{ certification.credential_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                        <i class="bi bi-link-45deg me-1"></i>View Credential
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% set documents = employee.documents %}
+            {% if documents %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark me-2 text-primary"></i>Documents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Document Type</th>
+                                    <th>Original Filename</th>
+                                    <th>Upload Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in documents %}
+                                <tr>
+                                    <td>{{ document.document_type|capitalize }}</td>
+                                    <td>{{ document.original_filename }}</td>
+                                    <td>{{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('uploaded_file', filename='documents/' + document.filename) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                            <i class="bi bi-eye me-1"></i>View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('self_onboarding') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-upload me-1"></i>Upload More Documents
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

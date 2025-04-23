@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Create User - Employee Management System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white text-center py-4">
+                    <div class="mb-3" style="font-size: 3rem; color: #2d7bf7;">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </div>
+                    <h4 class="mb-1">Create New User</h4>
+                    <p class="text-muted">Create a user account for onboarding employees</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('create_user') }}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="username" class="form-label">Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required autofocus>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                    <input type="text" class="form-control" id="password" name="password" placeholder="Enter password" required>
+                                </div>
+                                <div class="form-text">Password will be visible for sharing with the user</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="employee_id" class="form-label">Employee ID</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                                <input type="text" class="form-control" id="employee_id" name="employee_id" placeholder="Enter employee ID" required>
+                            </div>
+                        </div>
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-person-plus me-2"></i>Create User
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="userCreatedModal" tabindex="-1" aria-labelledby="userCreatedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="userCreatedModalLabel">
+                    <i class="bi bi-check-circle me-2"></i>User Created Successfully
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <div style="font-size: 4rem; color: #198754;">
+                        <i class="bi bi-person-check-fill"></i>
+                    </div>
+                    <h4 class="mt-3">User Account Created</h4>
+                    <p class="text-muted">Please share these credentials with the onboarding employee</p>
+                </div>
+                
+                <div class="card mb-3 bg-light">
+                    <div class="card-body">
+                        <div class="row mb-2">
+                            <div class="col-4 fw-bold">Username:</div>
+                            <div class="col-7">{{ new_username }}</div>
+                            <div class="col-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary copy-btn" data-clipboard-text="{{ new_username }}">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-4 fw-bold">Password:</div>
+                            <div class="col-7">{{ new_password }}</div>
+                            <div class="col-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary copy-btn" data-clipboard-text="{{ new_password }}">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-4 fw-bold">Employee ID:</div>
+                            <div class="col-7">{{ new_employee_id }}</div>
+                            <div class="col-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary copy-btn" data-clipboard-text="{{ new_employee_id }}">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid mb-3">
+                    <button type="button" class="btn btn-outline-primary copy-all-btn" 
+                            data-clipboard-text="Username: {{ new_username }}&#10;Password: {{ new_password }}&#10;Employee ID: {{ new_employee_id }}">
+                        <i class="bi bi-clipboard-check me-2"></i>Copy All Credentials
+                    </button>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Please save or copy these credentials now. You won't be able to see the password again.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{{ url_for('create_user') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Create Another User
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
+<script>
+    // Show modal if credentials are available
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if new_username and new_password %}
+        var userCreatedModal = new bootstrap.Modal(document.getElementById('userCreatedModal'));
+        userCreatedModal.show();
+        
+        // Initialize clipboard.js for individual copy buttons
+        var clipboard = new ClipboardJS('.copy-btn');
+        clipboard.on('success', function(e) {
+            // Change button icon temporarily to show success
+            var originalHTML = e.trigger.innerHTML;
+            e.trigger.innerHTML = '<i class="bi bi-check-lg"></i>';
+            setTimeout(function() {
+                e.trigger.innerHTML = originalHTML;
+            }, 1000);
+            e.clearSelection();
+        });
+        
+        // Initialize clipboard.js for copy all button
+        var clipboardAll = new ClipboardJS('.copy-all-btn');
+        clipboardAll.on('success', function(e) {
+            // Change button text temporarily to show success
+            var originalHTML = e.trigger.innerHTML;
+            e.trigger.innerHTML = '<i class="bi bi-check-lg me-2"></i>Copied!';
+            setTimeout(function() {
+                e.trigger.innerHTML = originalHTML;
+            }, 1000);
+            e.clearSelection();
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}
