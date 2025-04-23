@@ -563,7 +563,7 @@ def add_employee():
 @app.route('/employee/<int:id>')
 @login_required
 def employee_details(id):
-    employee = db.session.get_or_404(Employee, id)
+    employee = Employee.query.get_or_404(id)
     educations = Education.query.filter_by(employee_id=id).all()
     certifications = Certification.query.filter_by(employee_id=id).all()
     return render_template('employee_details.html', employee=employee, educations=educations, certifications=certifications)
@@ -571,7 +571,7 @@ def employee_details(id):
 @app.route('/employee/<int:id>/edit', methods=['GET', 'POST'])
 @admin_required
 def edit_employee(id):
-    employee = db.session.get_or_404(Employee, id)
+    employee = Employee.query.get_or_404(id)
     
     # Get all unique departments for the dropdown
     departments = db.session.query(Employee.department).distinct().all()
@@ -678,7 +678,7 @@ def edit_employee(id):
 @app.route('/employee/<int:id>/delete', methods=['POST'])
 @admin_required
 def delete_employee(id):
-    employee = db.session.get_or_404(Employee, id)
+    employee = Employee.query.get_or_404(id)
     db.session.delete(employee)
     db.session.commit()
     flash('Employee deleted successfully!', 'success')
@@ -914,6 +914,10 @@ def self_onboarding():
                                 mime_type=profile_pic.content_type
                             )
                             
+                            # Make the file publicly accessible
+                            if drive_file_id:
+                                drive_helper.make_file_public(drive_file_id)
+                            
                             # Remove temporary file
                             try:
                                 os.remove(temp_file_path)
@@ -976,6 +980,10 @@ def self_onboarding():
                                     parent_folder_id=employee_folder_id,
                                     mime_type=doc_file.content_type
                                 )
+                                
+                                # Make the file publicly accessible
+                                if drive_file_id:
+                                    drive_helper.make_file_public(drive_file_id)
                                 
                                 # Remove temporary file
                                 try:
@@ -1129,7 +1137,10 @@ def uploaded_file(filename):
         if app.config.get('GOOGLE_DRIVE_ENABLED', False) and drive_helper and drive_helper.is_enabled():
             # Admin can access any file
             if session.get('is_admin', False):
-                return redirect(drive_helper.get_download_url(file_id))
+                # Instead of redirecting, render a page with an iframe to view the file
+                return render_template('view_drive_file.html', 
+                                      file_url=drive_helper.get_file_url(file_id),
+                                      download_url=drive_helper.get_download_url(file_id))
             
             # Regular user can only access their own files
             if user and user.employee_id:
@@ -1137,7 +1148,10 @@ def uploaded_file(filename):
                 if employee and employee.drive_folder_id:
                     # Check if file is in user's folder
                     if drive_helper.is_file_in_folder(file_id, employee.drive_folder_id):
-                        return redirect(drive_helper.get_download_url(file_id))
+                        # Instead of redirecting, render a page with an iframe to view the file
+                        return render_template('view_drive_file.html', 
+                                              file_url=drive_helper.get_file_url(file_id),
+                                              download_url=drive_helper.get_download_url(file_id))
             
             # If not authorized
             flash('You are not authorized to access this file', 'danger')
@@ -1229,7 +1243,7 @@ def uploaded_file(filename):
 @app.route('/delete-document/<int:document_id>', methods=['POST'])
 @login_required
 def delete_document(document_id):
-    document = db.session.get_or_404(Document, document_id)
+    document = Document.query.get_or_404(document_id)
     
     # Check if user is authorized to delete this document
     user = User.query.filter_by(username=session.get('username')).first()
@@ -1258,4 +1272,10 @@ def delete_document(document_id):
     return redirect(url_for('self_onboarding'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=12345, debug=True)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int, default=12000, help='Port to run the server on')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to run the server on')
+    args = parser.parse_args()
+    
+    app.run(host=args.host, port=args.port, debug=True)

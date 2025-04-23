@@ -36,6 +36,10 @@ class GoogleDriveHelper:
             if self.is_enabled():
                 # Create or get the root folder
                 self.root_folder_id = self.create_folder_if_not_exists(self.root_folder_name)
+                
+                # Make sure the root folder is publicly accessible
+                if self.root_folder_id:
+                    self.make_file_public(self.root_folder_id)
         else:
             print("Warning: Google Drive credentials not found. File uploads will be stored locally.")
     
@@ -85,7 +89,17 @@ class GoogleDriveHelper:
                 fields='id'
             ).execute()
             
-            return folder.get('id')
+            folder_id = folder.get('id')
+            
+            # Make the folder publicly accessible
+            try:
+                permission = {'type': 'anyone', 'role': 'reader'}
+                self.drive_service.permissions().create(fileId=folder_id, body=permission).execute()
+                print(f"Folder {folder_id} is now publicly accessible with a link")
+            except Exception as e:
+                print(f"Error setting public permission on folder: {str(e)}")
+            
+            return folder_id
             
         except HttpError as e:
             print(f"Error creating folder in Google Drive: {str(e)}")
@@ -181,6 +195,9 @@ class GoogleDriveHelper:
             
             file_id = file.get('id')
             print(f"File uploaded successfully. File ID: {file_id}")
+            # Make the file publicly accessible
+            self._make_uploaded_file_public(file_id)
+            
             return file_id
             
         except HttpError as e:
@@ -239,6 +256,9 @@ class GoogleDriveHelper:
             
             file_id = file.get('id')
             print(f"File uploaded successfully. File ID: {file_id}")
+            # Make the file publicly accessible
+            self._make_uploaded_file_public(file_id)
+            
             return file_id
             
         except HttpError as e:
@@ -323,6 +343,75 @@ class GoogleDriveHelper:
             return None
             
         return f"https://drive.google.com/drive/folders/{folder_id}"
+        
+    def make_file_public(self, file_id):
+        """
+        Make a file publicly accessible with a link.
+        
+        Args:
+            file_id: ID of the file
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.is_enabled() or not file_id:
+            return False
+            
+        try:
+            permission = {'type': 'anyone', 'role': 'reader'}
+            self.drive_service.permissions().create(fileId=file_id, body=permission).execute()
+            print(f"File {file_id} is now publicly accessible with a link")
+            return True
+        except Exception as e:
+            print(f"Error setting public permission: {str(e)}")
+            return False
+            
+    def _make_uploaded_file_public(self, file_id):
+        """
+        Internal method to make a newly uploaded file public.
+        Called automatically after file uploads.
+        
+        Args:
+            file_id: ID of the file
+        """
+        if file_id:
+            try:
+                self.make_file_public(file_id)
+            except Exception as e:
+                print(f"Error making uploaded file public: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                
+    def list_files_in_folder(self, folder_id):
+        """
+        List all files in a Google Drive folder.
+        
+        Args:
+            folder_id: ID of the folder
+            
+        Returns:
+            List of file metadata dictionaries, or None if error
+        """
+        if not self.is_enabled() or not folder_id:
+            return None
+            
+        try:
+            query = f"'{folder_id}' in parents and trashed=false"
+            results = self.drive_service.files().list(
+                q=query,
+                fields="files(id, name, mimeType, webViewLink)",
+                pageSize=100
+            ).execute()
+            
+            files = results.get('files', [])
+            print(f"Found {len(files)} files in folder {folder_id}")
+            return files
+            
+        except Exception as e:
+            print(f"Error listing files in folder: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
 
 # Create a singleton instance
 # Note: This singleton is not used in app.py, which creates its own instance
