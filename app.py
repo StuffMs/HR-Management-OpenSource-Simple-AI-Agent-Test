@@ -156,10 +156,13 @@ class Document(db.Model):
     
     def get_url(self):
         """Get the URL for the document, either from Google Drive or local storage."""
-        if self.drive_file_id and drive_helper.is_enabled():
-            return drive_helper.get_file_url(self.drive_file_id)
+        if self.drive_file_id and drive_helper and drive_helper.is_enabled():
+            # For Google Drive files, use the drive: prefix to indicate it's a Google Drive file
+            return url_for('uploaded_file', filename=f'drive:{self.drive_file_id}')
         else:
-            return url_for('uploaded_file', filename=self.filename, file_type='documents')
+            # For local files, use the full path with forward slashes
+            clean_filename = self.filename.replace('\\', '/')
+            return url_for('uploaded_file', filename=f'documents/{clean_filename}')
 
 # Employee model - updated with new fields
 class Employee(db.Model):
@@ -188,10 +191,13 @@ class Employee(db.Model):
     
     def get_profile_picture_url(self):
         """Get the URL for the profile picture, either from Google Drive or local storage."""
-        if self.drive_profile_pic_id and drive_helper.is_enabled():
-            return drive_helper.get_file_url(self.drive_profile_pic_id)
+        if self.drive_profile_pic_id and drive_helper and drive_helper.is_enabled():
+            # For Google Drive files, use the drive: prefix to indicate it's a Google Drive file
+            return url_for('uploaded_file', filename=f'drive:{self.drive_profile_pic_id}')
         elif self.profile_picture:
-            return url_for('uploaded_file', filename=self.profile_picture, file_type='profile_pictures')
+            # For local files, use the full path with forward slashes
+            clean_filename = self.profile_picture.replace('\\', '/')
+            return url_for('uploaded_file', filename=f'profile_pictures/{clean_filename}')
         else:
             return url_for('static', filename='img/default-profile.png')
     
@@ -557,7 +563,7 @@ def add_employee():
 @app.route('/employee/<int:id>')
 @login_required
 def employee_details(id):
-    employee = db.session.get_or_404(Employee, id)
+    employee = Employee.query.get_or_404(id)
     educations = Education.query.filter_by(employee_id=id).all()
     certifications = Certification.query.filter_by(employee_id=id).all()
     return render_template('employee_details.html', employee=employee, educations=educations, certifications=certifications)
@@ -565,7 +571,7 @@ def employee_details(id):
 @app.route('/employee/<int:id>/edit', methods=['GET', 'POST'])
 @admin_required
 def edit_employee(id):
-    employee = db.session.get_or_404(Employee, id)
+    employee = Employee.query.get_or_404(id)
     
     # Get all unique departments for the dropdown
     departments = db.session.query(Employee.department).distinct().all()
@@ -672,7 +678,7 @@ def edit_employee(id):
 @app.route('/employee/<int:id>/delete', methods=['POST'])
 @admin_required
 def delete_employee(id):
-    employee = db.session.get_or_404(Employee, id)
+    employee = Employee.query.get_or_404(id)
     db.session.delete(employee)
     db.session.commit()
     flash('Employee deleted successfully!', 'success')
@@ -908,6 +914,10 @@ def self_onboarding():
                                 mime_type=profile_pic.content_type
                             )
                             
+                            # Make the file publicly accessible
+                            if drive_file_id:
+                                drive_helper.make_file_public(drive_file_id)
+                            
                             # Remove temporary file
                             try:
                                 os.remove(temp_file_path)
@@ -970,6 +980,10 @@ def self_onboarding():
                                     parent_folder_id=employee_folder_id,
                                     mime_type=doc_file.content_type
                                 )
+                                
+                                # Make the file publicly accessible
+                                if drive_file_id:
+                                    drive_helper.make_file_public(drive_file_id)
                                 
                                 # Remove temporary file
                                 try:
@@ -1123,7 +1137,10 @@ def uploaded_file(filename):
         if app.config.get('GOOGLE_DRIVE_ENABLED', False) and drive_helper and drive_helper.is_enabled():
             # Admin can access any file
             if session.get('is_admin', False):
-                return redirect(drive_helper.get_download_url(file_id))
+                # Instead of redirecting, render a page with an iframe to view the file
+                return render_template('view_drive_file.html', 
+                                      file_url=drive_helper.get_file_url(file_id),
+                                      download_url=drive_helper.get_download_url(file_id))
             
             # Regular user can only access their own files
             if user and user.employee_id:
@@ -1131,7 +1148,10 @@ def uploaded_file(filename):
                 if employee and employee.drive_folder_id:
                     # Check if file is in user's folder
                     if drive_helper.is_file_in_folder(file_id, employee.drive_folder_id):
-                        return redirect(drive_helper.get_download_url(file_id))
+                        # Instead of redirecting, render a page with an iframe to view the file
+                        return render_template('view_drive_file.html', 
+                                              file_url=drive_helper.get_file_url(file_id),
+                                              download_url=drive_helper.get_download_url(file_id))
             
             # If not authorized
             flash('You are not authorized to access this file', 'danger')
@@ -1142,22 +1162,64 @@ def uploaded_file(filename):
     
     # Handle local files
     # Determine if it's a profile picture or a document
-    if 'profile_pictures' in filename:
+    if filename.startswith('profile_pictures/'):
+        # Remove the 'profile_pictures/' prefix
+        file_path = filename[len('profile_pictures/'):]
         upload_path = app.config['PROFILE_PICTURES_FOLDER']
+        
+        # Handle backslashes in the path
+        file_path = file_path.replace('\\', '/')
+        
         # Extract the actual filename from the path
-        if '/' in filename:
-            parts = filename.split('/')
-            folder_name = parts[-2]
-            filename = parts[-1]
+        if '/' in file_path:
+            parts = file_path.split('/')
+            folder_name = parts[0]  # First part is the folder
+            filename = parts[-1]    # Last part is the filename
             upload_path = os.path.join(upload_path, folder_name)
-    else:
+        else:
+            filename = file_path
+    elif filename.startswith('documents/'):
+        # Remove the 'documents/' prefix
+        file_path = filename[len('documents/'):]
         upload_path = app.config['DOCUMENTS_FOLDER']
+        
+        # Handle backslashes in the path
+        file_path = file_path.replace('\\', '/')
+        
         # Extract the actual filename from the path
+        if '/' in file_path:
+            parts = file_path.split('/')
+            folder_name = parts[0]  # First part is the folder
+            filename = parts[-1]    # Last part is the filename
+            upload_path = os.path.join(upload_path, folder_name)
+        else:
+            filename = file_path
+    else:
+        # If no prefix, try to determine from the path
         if '/' in filename:
             parts = filename.split('/')
-            folder_name = parts[-2]
-            filename = parts[-1]
-            upload_path = os.path.join(upload_path, folder_name)
+            if parts[0] == 'documents':
+                upload_path = app.config['DOCUMENTS_FOLDER']
+                folder_name = parts[1] if len(parts) > 2 else ''
+                filename = parts[-1]
+                if folder_name:
+                    upload_path = os.path.join(upload_path, folder_name)
+            elif parts[0] == 'profile_pictures':
+                upload_path = app.config['PROFILE_PICTURES_FOLDER']
+                folder_name = parts[1] if len(parts) > 2 else ''
+                filename = parts[-1]
+                if folder_name:
+                    upload_path = os.path.join(upload_path, folder_name)
+            else:
+                # Default to documents folder
+                upload_path = app.config['DOCUMENTS_FOLDER']
+                filename = parts[-1]
+        else:
+            # Default to documents folder
+            upload_path = app.config['DOCUMENTS_FOLDER']
+            
+    # Log the path for debugging
+    app.logger.info(f"Accessing file: {os.path.join(upload_path, filename)}")
 
     # Admin can access any file
     if session.get('is_admin', False):
@@ -1181,7 +1243,7 @@ def uploaded_file(filename):
 @app.route('/delete-document/<int:document_id>', methods=['POST'])
 @login_required
 def delete_document(document_id):
-    document = db.session.get_or_404(Document, document_id)
+    document = Document.query.get_or_404(document_id)
     
     # Check if user is authorized to delete this document
     user = User.query.filter_by(username=session.get('username')).first()
@@ -1210,4 +1272,10 @@ def delete_document(document_id):
     return redirect(url_for('self_onboarding'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=12345, debug=True)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int, default=12000, help='Port to run the server on')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to run the server on')
+    args = parser.parse_args()
+    
+    app.run(host=args.host, port=args.port, debug=True)
