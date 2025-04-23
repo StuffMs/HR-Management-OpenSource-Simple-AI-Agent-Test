@@ -156,10 +156,13 @@ class Document(db.Model):
     
     def get_url(self):
         """Get the URL for the document, either from Google Drive or local storage."""
-        if self.drive_file_id and drive_helper.is_enabled():
-            return drive_helper.get_file_url(self.drive_file_id)
+        if self.drive_file_id and drive_helper and drive_helper.is_enabled():
+            # For Google Drive files, use the drive: prefix to indicate it's a Google Drive file
+            return url_for('uploaded_file', filename=f'drive:{self.drive_file_id}')
         else:
-            return url_for('uploaded_file', filename=self.filename, file_type='documents')
+            # For local files, use the full path with forward slashes
+            clean_filename = self.filename.replace('\\', '/')
+            return url_for('uploaded_file', filename=f'documents/{clean_filename}')
 
 # Employee model - updated with new fields
 class Employee(db.Model):
@@ -188,10 +191,13 @@ class Employee(db.Model):
     
     def get_profile_picture_url(self):
         """Get the URL for the profile picture, either from Google Drive or local storage."""
-        if self.drive_profile_pic_id and drive_helper.is_enabled():
-            return drive_helper.get_file_url(self.drive_profile_pic_id)
+        if self.drive_profile_pic_id and drive_helper and drive_helper.is_enabled():
+            # For Google Drive files, use the drive: prefix to indicate it's a Google Drive file
+            return url_for('uploaded_file', filename=f'drive:{self.drive_profile_pic_id}')
         elif self.profile_picture:
-            return url_for('uploaded_file', filename=self.profile_picture, file_type='profile_pictures')
+            # For local files, use the full path with forward slashes
+            clean_filename = self.profile_picture.replace('\\', '/')
+            return url_for('uploaded_file', filename=f'profile_pictures/{clean_filename}')
         else:
             return url_for('static', filename='img/default-profile.png')
     
@@ -1142,22 +1148,64 @@ def uploaded_file(filename):
     
     # Handle local files
     # Determine if it's a profile picture or a document
-    if 'profile_pictures' in filename:
+    if filename.startswith('profile_pictures/'):
+        # Remove the 'profile_pictures/' prefix
+        file_path = filename[len('profile_pictures/'):]
         upload_path = app.config['PROFILE_PICTURES_FOLDER']
+        
+        # Handle backslashes in the path
+        file_path = file_path.replace('\\', '/')
+        
         # Extract the actual filename from the path
-        if '/' in filename:
-            parts = filename.split('/')
-            folder_name = parts[-2]
-            filename = parts[-1]
+        if '/' in file_path:
+            parts = file_path.split('/')
+            folder_name = parts[0]  # First part is the folder
+            filename = parts[-1]    # Last part is the filename
             upload_path = os.path.join(upload_path, folder_name)
-    else:
+        else:
+            filename = file_path
+    elif filename.startswith('documents/'):
+        # Remove the 'documents/' prefix
+        file_path = filename[len('documents/'):]
         upload_path = app.config['DOCUMENTS_FOLDER']
+        
+        # Handle backslashes in the path
+        file_path = file_path.replace('\\', '/')
+        
         # Extract the actual filename from the path
+        if '/' in file_path:
+            parts = file_path.split('/')
+            folder_name = parts[0]  # First part is the folder
+            filename = parts[-1]    # Last part is the filename
+            upload_path = os.path.join(upload_path, folder_name)
+        else:
+            filename = file_path
+    else:
+        # If no prefix, try to determine from the path
         if '/' in filename:
             parts = filename.split('/')
-            folder_name = parts[-2]
-            filename = parts[-1]
-            upload_path = os.path.join(upload_path, folder_name)
+            if parts[0] == 'documents':
+                upload_path = app.config['DOCUMENTS_FOLDER']
+                folder_name = parts[1] if len(parts) > 2 else ''
+                filename = parts[-1]
+                if folder_name:
+                    upload_path = os.path.join(upload_path, folder_name)
+            elif parts[0] == 'profile_pictures':
+                upload_path = app.config['PROFILE_PICTURES_FOLDER']
+                folder_name = parts[1] if len(parts) > 2 else ''
+                filename = parts[-1]
+                if folder_name:
+                    upload_path = os.path.join(upload_path, folder_name)
+            else:
+                # Default to documents folder
+                upload_path = app.config['DOCUMENTS_FOLDER']
+                filename = parts[-1]
+        else:
+            # Default to documents folder
+            upload_path = app.config['DOCUMENTS_FOLDER']
+            
+    # Log the path for debugging
+    app.logger.info(f"Accessing file: {os.path.join(upload_path, filename)}")
 
     # Admin can access any file
     if session.get('is_admin', False):

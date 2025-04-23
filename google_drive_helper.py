@@ -264,6 +264,50 @@ class GoogleDriveHelper:
             return None
             
         return f"https://drive.google.com/file/d/{file_id}/view"
+        
+    def get_download_url(self, file_id):
+        """
+        Get the direct download URL for a file in Google Drive.
+        
+        Args:
+            file_id: ID of the file
+            
+        Returns:
+            Direct download URL of the file
+        """
+        if not file_id:
+            return None
+            
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
+        
+    def is_file_in_folder(self, file_id, folder_id):
+        """
+        Check if a file is in a specific folder.
+        
+        Args:
+            file_id: ID of the file
+            folder_id: ID of the folder
+            
+        Returns:
+            True if the file is in the folder, False otherwise
+        """
+        if not self.is_enabled() or not file_id or not folder_id:
+            return False
+            
+        try:
+            # Get the file metadata
+            file = self.drive_service.files().get(
+                fileId=file_id,
+                fields='parents'
+            ).execute()
+            
+            # Check if the folder is in the parents
+            return folder_id in file.get('parents', [])
+            
+        except Exception as e:
+            print(f"Error checking if file is in folder: {str(e)}")
+            # If there's an error, assume the file is accessible
+            return True
     
     def get_folder_url(self, folder_id):
         """
